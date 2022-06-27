@@ -1,7 +1,11 @@
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
 #include <thread>
+
+#include <boost/program_options.hpp>
 
 #include <cuda_runtime.h>
 
@@ -16,7 +20,6 @@ class FactorReserver : public Reserver {
 public:
   explicit FactorReserver(double factor) : factor_{factor} {
     std::size_t sizeCount = 1000 * 1000 * factor;
-    std::cout << ">>> " << sizeCount << std::endl;
     cudaMalloc(&devPointer_, sizeCount);
     cudaMemset(devPointer_, -1, sizeCount);
   }
@@ -35,6 +38,24 @@ std::unique_ptr<Reserver> Reserver::ByFactor(const std::string & str) {
   return std::make_unique<FactorReserver>(factor);
 }
 
+void Record(const std::string & factorArg, const std::string & sleepArg) {
+  const std::string filename = "gramc_record";
+
+  auto now = std::chrono::system_clock::now();
+  std::time_t nowtime = std::chrono::system_clock::to_time_t(now);
+
+  std::ofstream ofs(filename, ofs.binary | ofs.app);
+  ofs << std::put_time(std::localtime(&nowtime), "%Y-%m-%d %X") << " "
+      << factorArg << " " << sleepArg << std::endl;
+}
+
+void Wait(const std::string & sleepArg) {
+  std::istringstream iss(sleepArg);
+  std::size_t seconds = 0;
+  iss >> seconds;
+  std::this_thread::sleep_for(std::chrono::seconds(seconds));
+}
+
 int main(int argc, char * argv[]) {
   if (argc != 3) {
     std::cerr << "usage: " << argv[0] << " <factor> <sleep>" << std::endl;
@@ -46,10 +67,8 @@ int main(int argc, char * argv[]) {
 
   std::unique_ptr<Reserver> reserver = Reserver::ByFactor(factorArg);
 
-  std::istringstream iss(sleepArg);
-  std::size_t seconds = 0;
-  iss >> seconds;
-  std::this_thread::sleep_for(std::chrono::seconds(seconds));
+  Record(factorArg, sleepArg);
+  Wait(sleepArg);
 
   return EXIT_SUCCESS;
 }

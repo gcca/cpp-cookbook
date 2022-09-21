@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package kol;
+
+service Kol {
+  rpc GetSigned(Person) returns (Feature) {}
+}
+
+message Person {
+  string name = 1;
+  int32 age = 2;
+}
+
+message Feature {
+  string sign = 1;
+  Person person = 2;
+}
